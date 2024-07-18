@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Statefulset
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  serviceName: "mysql"
+  replicas: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels: 
+        app: mysql
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: mysql
+        image: mysql:8
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-pvc
+          mounthPath: /var/lib/mysql
+        env:
+        - name: MYSQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: data
+              key: DB_DATABASE
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: password
+              key: DB_PASSWORD
+      volumes:
+      - name: mysql-pvc
+        persistentVolumeClaim:
+          claimname: mysql-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  ports:
+  - port: 3306
+    name: mysql
+  clusterIP: None
+  selector:
+    app: mysql
+
