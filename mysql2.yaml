@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: mysql 
+      app: mysql
   serviceName: "mysql"
   replicas: 1
   minReadySeconds: 10
@@ -36,7 +36,7 @@ spec:
               key: DB_PASSWORD
       volumes:
       - name: mysql-pvc
-        persistentVolumeClaim: 
+        persistentVolumeClaim:
           claimName: mysql-pvc
 ---
 apiVersion: v1
@@ -52,4 +52,43 @@ spec:
   clusterIP: None
   selector:
     app: mysql
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-dump
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: mysql-dump
+            image: leonardosartorello/mysqldump:v4
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: MYSQL_ENV_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: data
+                  key: DB_HOST
+            - name: MYSQL_ENV_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: password
+                  key: DB_USER
+            - name: MYSQL_ENV_DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: password
+                  key: DB_PASSWORD
+            volumeMounts:
+            - name: mysqldump
+              mountPath: /mysqldump
+          restartPolicy: OnFailure
+          volumes:
+          - name: mysqldump
+            hostPath:
+              path: /home/carlossantos/Documents/mysqldump
 
